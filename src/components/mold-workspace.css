@@ -1,0 +1,376 @@
+#root .mold-app {
+  background: #151b22;
+  color: #ced7e1;
+  min-height: 100vh;
+  font:
+    13px/1.5 Inter,
+    system-ui,
+    sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+.mold-app button {
+  cursor: pointer;
+  border: 1px solid #394552;
+  border-radius: 5px;
+  padding: 8px 12px;
+  background: #242e39;
+  color: #d5dde6;
+  font: inherit;
+}
+.mold-app button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.mold-header {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  padding: 18px 24px;
+  background: #1b232d;
+  border-bottom: 1px solid #34404e;
+}
+.mold-brand b {
+  font-size: 21px;
+  letter-spacing: 1px;
+  color: #edf4f9;
+}
+.mold-brand span {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: #8296a8;
+}
+.mold-project {
+  flex: 1;
+  font-size: 14px;
+}
+.mold-project span {
+  color: #738497;
+}
+.mold-app .mold-primary {
+  background: #58b9a1;
+  color: #10241f;
+  border-color: #58b9a1;
+  font-weight: 600;
+}
+.mold-stages {
+  display: flex;
+  gap: 4px;
+  padding: 10px 20px;
+  background: #1b232d;
+  overflow-x: auto;
+  border-bottom: 1px solid #34404e;
+}
+.mold-stages button {
+  white-space: nowrap;
+  border-color: transparent;
+  background: transparent;
+  color: #8fa0b1;
+}
+.mold-stages small {
+  color: #5c7186;
+  margin-right: 10px;
+}
+.mold-stages button.active {
+  color: #70d7bd;
+  background: #293c3c;
+  border-color: #3a5a55;
+}
+.mold-stages button span {
+  font-size: 9px;
+  margin-left: 8px;
+  color: #758392;
+}
+.mold-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr) 270px;
+  flex: 1;
+}
+.mold-tree,
+.mold-inspector {
+  padding: 22px 18px;
+  background: #1b232d;
+}
+.mold-tree {
+  border-right: 1px solid #34404e;
+}
+.mold-inspector {
+  border-left: 1px solid #34404e;
+}
+.mold-app h3 {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: #8799ac;
+  margin: 0 0 15px;
+  font-weight: 600;
+}
+.mold-tree p,
+.mold-inspector p {
+  font-size: 12px;
+  color: #8193a5;
+  line-height: 1.7;
+  margin: 12px 0;
+}
+.mold-tree .tree-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  font-size: 12px;
+  margin: 4px 0;
+}
+.mold-tree .tree-item.selected {
+  background: #2b4041;
+  color: #79dac0;
+}
+.tree-divider {
+  height: 1px;
+  background: #313d49;
+  margin: 24px 0;
+}
+.mold-tree label {
+  display: block;
+  font-size: 12px;
+  margin: 14px 0;
+  color: #a5b3c0;
+}
+.mold-tree select {
+  display: block;
+  width: 100%;
+  background: #242e39;
+  border: 1px solid #394552;
+  padding: 9px;
+  color: #d5dde6;
+  border-radius: 4px;
+  margin-top: 7px;
+}
+.mold-tree .scope-note {
+  margin-top: 30px;
+  border-left: 2px solid #4f927e;
+  padding-left: 12px;
+  font-size: 11px;
+}
+.mold-main {
+  min-width: 0;
+}
+.mold-toolbar {
+  height: 65px;
+  background: #202933;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid #34404e;
+}
+.mold-toolbar strong {
+  font-size: 15px;
+}
+.mold-toolbar div span {
+  display: block;
+  font-size: 11px;
+  color: #7c8fa1;
+}
+.mold-status {
+  font:
+    10px ui-monospace,
+    monospace;
+  color: #7dbdab;
+  letter-spacing: 1px;
+}
+.mold-canvas {
+  height: 510px;
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(ellipse at center, #2a3542, #202730);
+}
+.mold-canvas canvas {
+  display: block;
+}
+.canvas-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  pointer-events: none;
+}
+.canvas-empty > span {
+  font-size: 80px;
+  color: #526b7b;
+}
+.canvas-empty h2 {
+  font-size: 24px;
+  color: #d9e2e9;
+  font-weight: 500;
+  margin: 20px 0 10px;
+}
+.canvas-empty p {
+  color: #8e9faf;
+  line-height: 1.8;
+}
+.canvas-empty small {
+  color: #5f7386;
+  font-size: 11px;
+  margin-top: 20px;
+}
+.canvas-hint {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  color: #7e92a4;
+  font-size: 10px;
+  pointer-events: none;
+}
+.mold-legend {
+  padding: 10px 20px;
+  background: #1b232d;
+  color: #9bb0bc;
+  font-size: 11px;
+  border-top: 1px solid #34404e;
+}
+.mold-findings {
+  padding: 22px;
+  border-top: 1px solid #34404e;
+}
+.mold-findings > div {
+  display: flex;
+  justify-content: space-between;
+}
+.mold-findings > div span {
+  font-size: 11px;
+  color: #697f90;
+}
+.mold-findings p {
+  padding: 10px 0;
+  border-top: 1px solid #293643;
+  color: #96a9b8;
+  font-size: 12px;
+}
+.mold-findings b {
+  font-size: 9px;
+  color: #7bbfad;
+  margin-right: 10px;
+}
+.mold-inspector h2 {
+  font-size: 18px;
+  color: #e0e7ed;
+  font-weight: 500;
+}
+.mold-inspector dl div {
+  padding: 13px 0;
+  border-bottom: 1px solid #2e3b46;
+}
+.mold-inspector dt {
+  font-size: 11px;
+  color: #8296a8;
+}
+.mold-inspector dd {
+  margin-top: 3px;
+  font-size: 13px;
+  color: #d5e0e8;
+  overflow-wrap: anywhere;
+}
+.mold-inspector button {
+  width: 100%;
+  font-size: 11px;
+}
+.mold-footer {
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  background: #171e26;
+  border-top: 1px solid #303d49;
+  color: #718697;
+  font-size: 10px;
+}
+.mold-error,
+.mold-notice {
+  padding: 16px;
+  background: #493534;
+  color: #ffd2c6;
+}
+.mold-notice {
+  background: #494431;
+  color: #e9d9aa;
+}
+.future-stage {
+  padding: 60px 40px;
+  min-height: 510px;
+}
+.future-stage > span {
+  font-size: 10px;
+  color: #ba9c70;
+}
+.future-stage h1 {
+  font-size: 32px;
+  margin: 20px 0;
+}
+.future-stage p {
+  max-width: 480px;
+  color: #91a4b3;
+  margin-bottom: 25px;
+}
+@media (min-width: 1600px) {
+  .mold-canvas {
+    height: calc(100vh - 370px);
+    min-height: 510px;
+  }
+}
+@media (max-width: 1050px) {
+  .mold-layout {
+    grid-template-columns: 185px minmax(0, 1fr);
+  }
+  .mold-inspector {
+    grid-column: 1/-1;
+    border-top: 1px solid #34404e;
+  }
+  .mold-inspector dl {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 25px;
+  }
+}
+@media (max-width: 640px) {
+  .mold-layout {
+    display: flex;
+    flex-direction: column;
+  }
+  .mold-tree {
+    order: 2;
+  }
+  .mold-main {
+    order: 1;
+  }
+  .mold-inspector {
+    order: 3;
+  }
+  .mold-header {
+    padding: 15px;
+    gap: 15px;
+  }
+  .mold-project {
+    display: none;
+  }
+  .mold-header .mold-primary {
+    margin-left: auto;
+  }
+  .mold-canvas {
+    height: 390px;
+  }
+  .mold-stages {
+    padding: 8px;
+  }
+  .mold-footer {
+    gap: 12px;
+  }
+  .mold-stages button {
+    font-size: 12px;
+  }
+  .mold-brand b {
+    font-size: 17px;
+  }
+}

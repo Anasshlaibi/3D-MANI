@@ -35,8 +35,8 @@ def health_check():
         "status": "ok",
         "engine": "AI Manufacturing Design Engine Python Core",
         "engine_version": "1.0.0",
-        "validation_mode": "REAL_VALIDATION",
-        "cad_backend": "build123d v0.6 / OCCT 7.7"
+        "validation_mode": "CAPABILITY_ONLY",
+        "cad_backend": "OCCT available" if __import__("importlib").util.find_spec("OCP") else "UNAVAILABLE"
     }
 
 @app.post("/api/dsl/parse")
@@ -50,75 +50,7 @@ def api_parse_dsl(req: ParseDSLRequest):
 
 @app.post("/api/dsl/compile")
 def api_compile_dsl(req: CompileDSLRequest):
-    program, report = parse_dsl(req.dslText)
-    if report.has_errors or not program.parts:
-        raise HTTPException(status_code=400, detail=f"DSL syntax error: {report.diagnostics[0].message if report.diagnostics else 'Invalid DSL'}")
-
-    part = program.parts[0]
-    prof = part.geometry.profile
-    bottom_dia = prof.bottom_diameter.canonical_value if prof and prof.bottom_diameter else 64.0
-    top_dia = prof.top_diameter.canonical_value if prof and prof.top_diameter else 82.0
-    height = prof.height.canonical_value if prof and prof.height else 115.0
-    shell = part.geometry.shell.thickness.canonical_value if part.geometry.shell else 1.8
-    draft = part.geometry.draft.angle.canonical_value if part.geometry.draft else 1.75
-    rim = part.features.rim_radius.canonical_value if part.features and part.features.rim_radius else 3.0
-
-    cad = Build123dBackend()
-    shape = cad.create_part(name=part.part_name)
-    shape.params = {
-        "bottom_diameter": bottom_dia,
-        "top_diameter": top_dia,
-        "height": height,
-        "shell_thickness": shell,
-        "rim_radius": rim
-    }
-
-    mass_props = cad.mass_properties(shape)
-    step_text = cad.export_step(shape)
-    faces = tag_frustum_faces(bottom_dia, top_dia, height, shell, draft, rim)
-
-    return {
-        "model": {
-            "partName": part.part_name,
-            "revision": 1,
-            "process": part.process.process_type,
-            "material": part.material.material_name,
-            "requirements": {
-                "targetVolumeMl": part.requirements.target_volume.canonical_value if part.requirements.target_volume else 400.0,
-                "maxHeightMm": part.requirements.max_height.canonical_value if part.requirements.max_height else 120.0,
-                "stackable": part.requirements.stackable,
-                "minSafetyFactor": part.requirements.min_safety_factor
-            },
-            "geometry": {
-                "profile": {
-                    "bottomDiameter": bottom_dia,
-                    "topDiameter": top_dia,
-                    "height": height
-                },
-                "modifiers": {
-                    "shellThickness": shell,
-                    "draftAngle": draft,
-                    "baseFilletRadius": 2.0,
-                    "rimRadius": rim
-                }
-            },
-            "locks": part.locks.locked_parameters,
-            "rawDSLText": req.dslText
-        },
-        "calculatedVolumeMl": mass_props.volume_ml,
-        "calculatedMassGrams": mass_props.mass_g,
-        "surfaceAreaCm2": mass_props.surface_area_cm2,
-        "nominalWallThicknessMm": shell,
-        "minWallThicknessMm": round(shell * 0.95, 2),
-        "actualDraftDeg": draft,
-        "faces": [f.model_dump() for f in faces],
-        "stepExportData": step_text,
-        "provenance": {
-            "executor": "build123d:OCCT_Kernel",
-            "engine_version": "1.0.0",
-            "validationType": "REAL_VALIDATION"
-        }
-    }
+    raise HTTPException(410, "Legacy demo compilation is retired. Use /api/m2/inspect with real STEP geometry.")
 
 @app.post("/api/validation/run")
 def api_run_validation(req: RunValidationRequest):
@@ -139,3 +71,6 @@ def api_get_opensource():
         with open(path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f)
     return {"repositories": []}
+
+from .m2 import router as m2_router
+app.include_router(m2_router)

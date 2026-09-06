@@ -1,3 +1,5 @@
+> Historical architecture/reference document. Current implementation scope and limitations are in [PRODUCT_SCOPE.md](PRODUCT_SCOPE.md) and [README.md](README.md). Entries below are not proof of implemented or validated M2 capability.
+
 # CAD Backend Interface Specification
 
 ## Document ID: `CAD_BACKEND_INTERFACE.md`

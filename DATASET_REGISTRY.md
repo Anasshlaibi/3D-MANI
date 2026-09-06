@@ -1,3 +1,5 @@
+> Historical architecture/reference document. Current implementation scope and limitations are in [PRODUCT_SCOPE.md](PRODUCT_SCOPE.md) and [README.md](README.md). Entries below are not proof of implemented or validated M2 capability.
+
 # Dataset Registry
 
 This registry enforces strict compliance and legal governance for all geometric, CAD, and telemetry datasets evaluated or ingested by the **AI Manufacturing Design Engine**.

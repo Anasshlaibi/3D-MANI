@@ -1,3 +1,5 @@
+> Historical architecture/reference document. Current implementation scope and limitations are in [PRODUCT_SCOPE.md](PRODUCT_SCOPE.md) and [README.md](README.md). Entries below are not proof of implemented or validated M2 capability.
+
 # Open Source Registry
 
 This document records the formal evaluation, classification, and binding decision for every external open-source repository audited for the **AI Manufacturing Design Engine**.

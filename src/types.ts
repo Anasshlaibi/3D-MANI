@@ -204,12 +204,37 @@ export interface OpenSourceRepoEntry {
 }
 
 export interface GeometricFaceData {
-  id: string;
-  semanticTag: string;
-  type: 'planar' | 'cylindrical' | 'conical' | 'toroidal';
-  normal: [number, number, number];
+  id: string | number;
+  semanticTag?: string;
+  type?: string;
+  normal?: [number, number, number];
   areaMm2: number;
-  minThicknessMm: number;
-  draftAngleDeg: number;
-  isUndercut: boolean;
+  minThicknessMm?: number;
+  draftAngleDeg?: number;
+  isUndercut?: boolean;
+  isBlocked?: boolean;
+  positions?: number[];
+  indices?: number[];
+}
+
+export interface RealInspectorResult {
+  revision: string;
+  dimensions: [number, number, number];
+  volume: number;
+  area: number;
+  edges: number;
+  solids: number;
+  faces: GeometricFaceData[];
+  provenance: {
+    geometry: string;
+    analysis: string;
+    createdAt: string;
+    algorithm: string;
+    units: string;
+    material: string;
+    direction: string;
+    [key: string]: any;
+  };
+  limitations: string[];
+  filename: string;
 }

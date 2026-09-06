@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import * as THREE from 'three';
+import React, { useEffect, useRef, useState } from "react";
+import * as THREE from "three";
 import {
   Rotate3d,
   Layers,
@@ -10,16 +10,17 @@ import {
   CheckCircle2,
   Info,
   Maximize2,
-} from 'lucide-react';
-import { CompiledGeometryResult } from '../core/dslEngine';
-import { GeometricFaceData } from '../types';
+} from "lucide-react";
+import { CompiledGeometryResult } from "../core/dslEngine";
+import { GeometricFaceData, RealInspectorResult } from "../types";
 
 interface CADViewer3DProps {
-  geometryResult: CompiledGeometryResult;
+  geometryResult: CompiledGeometryResult & { realResult?: RealInspectorResult };
   onSelectFace?: (face: GeometricFaceData) => void;
 }
 
-export type ViewMode = 'solid' | 'wireframe' | 'thickness_heatmap' | 'draft_angles';
+export type ViewMode =
+  "solid" | "wireframe" | "thickness_heatmap" | "draft_angles";
 
 export const CADViewer3D: React.FC<CADViewer3DProps> = ({
   geometryResult,
@@ -33,11 +34,11 @@ export const CADViewer3D: React.FC<CADViewer3DProps> = ({
   const wireframeMeshRef = useRef<THREE.LineSegments | null>(null);
   const clipPlaneRef = useRef<THREE.Plane | null>(null);
 
-  const [viewMode, setViewMode] = useState<ViewMode>('solid');
+  const [viewMode, setViewMode] = useState<ViewMode>("solid");
   const [enableSectionCut, setEnableSectionCut] = useState(false);
   const [sectionCutPos, setSectionCutPos] = useState(0); // -50 to 50
   const [selectedFace, setSelectedFace] = useState<GeometricFaceData | null>(
-    geometryResult.faces[1] || null
+    geometryResult.faces[1] || null,
   );
 
   // Initialize Three.js Scene
@@ -53,6 +54,7 @@ export const CADViewer3D: React.FC<CADViewer3DProps> = ({
 
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
     camera.position.set(0, 70, 190);
+    camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -62,8 +64,7 @@ export const CADViewer3D: React.FC<CADViewer3DProps> = ({
     renderer.localClippingEnabled = true;
     rendererRef.current = renderer;
 
-    container.innerHTML = '';
-    container.appendChild(renderer.domElement);
+    container.prepend(renderer.domElement);
 
     // Ambient and Key Lighting
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
@@ -105,7 +106,10 @@ export const CADViewer3D: React.FC<CADViewer3DProps> = ({
 
       rotation.y += deltaX * 0.01;
       rotation.x += deltaY * 0.01;
-      rotation.x = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, rotation.x));
+      rotation.x = Math.max(
+        -Math.PI / 2.2,
+        Math.min(Math.PI / 2.2, rotation.x),
+      );
 
       const radius = 190;
       camera.position.x = radius * Math.sin(rotation.y) * Math.cos(rotation.x);
@@ -126,10 +130,10 @@ export const CADViewer3D: React.FC<CADViewer3DProps> = ({
       camera.position.addScaledVector(dir, -zoom * 0.3);
     };
 
-    container.addEventListener('mousedown', onMouseDown);
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-    container.addEventListener('wheel', onWheel, { passive: false });
+    container.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    container.addEventListener("wheel", onWheel, { passive: false });
 
     // Handle Container Resize
     const handleResize = () => {
@@ -155,11 +159,12 @@ export const CADViewer3D: React.FC<CADViewer3DProps> = ({
     return () => {
       cancelAnimationFrame(animationId);
       resizeObserver.disconnect();
-      container.removeEventListener('mousedown', onMouseDown);
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-      container.removeEventListener('wheel', onWheel);
+      container.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      container.removeEventListener("wheel", onWheel);
       renderer.dispose();
+      renderer.domElement.remove();
     };
   }, []);
 
@@ -171,7 +176,14 @@ export const CADViewer3D: React.FC<CADViewer3DProps> = ({
     // Remove previous meshes
     if (meshRef.current) {
       scene.remove(meshRef.current);
-      meshRef.current.geometry.dispose();
+      if (Array.isArray(meshRef.current)) {
+        meshRef.current.forEach(m => {
+          m.geometry.dispose();
+          scene.remove(m);
+        });
+      } else {
+        meshRef.current.geometry.dispose();
+      }
       meshRef.current = null;
     }
     if (wireframeMeshRef.current) {
@@ -180,21 +192,68 @@ export const CADViewer3D: React.FC<CADViewer3DProps> = ({
       wireframeMeshRef.current = null;
     }
 
-    const meshData = geometryResult.meshData;
-    const bufferGeometry = new THREE.BufferGeometry();
-    bufferGeometry.setAttribute('position', new THREE.Float32BufferAttribute(meshData.vertices, 3));
-    bufferGeometry.setAttribute('normal', new THREE.Float32BufferAttribute(meshData.normals, 3));
-    bufferGeometry.setIndex(meshData.indices);
+    const clipPlanes = enableSectionCut && clipPlaneRef.current ? [clipPlaneRef.current] : [];
+
+    if (geometryResult.realResult) {
+      const group = new THREE.Group();
+      const real = geometryResult.realResult;
+      
+      real.faces.forEach((face: any) => {
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(face.positions, 3));
+        geo.setIndex(new THREE.BufferAttribute(new Uint32Array(face.indices), 1));
+        geo.computeVertexNormals();
+
+        let color = new THREE.Color(0x06b6d4);
+        if (viewMode === 'draft_angles' && face.draft !== null) {
+          if (face.draft < 1.0) color.set(0xeab308); // Yellow (Warning)
+          if (face.blocked) color.set(0xe11d48); // Red (Undercut)
+          if (face.draft >= 1.0) color.set(0x06b6d4); // Cyan (OK)
+        } else if (viewMode === 'thickness_heatmap' && face.thickness !== null) {
+          if (face.thickness < 1.0) color.set(0xeab308); // Thin
+          if (face.thickness > 4.0) color.set(0xf97316); // Thick
+        }
+
+        const mat = new THREE.MeshPhysicalMaterial({
+          color: color,
+          metalness: 0.15,
+          roughness: 0.25,
+          side: THREE.DoubleSide,
+          clippingPlanes: clipPlanes,
+          wireframe: viewMode === 'wireframe'
+        });
+
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.userData = { faceId: face.id, faceData: face };
+        group.add(mesh);
+      });
+
+      scene.add(group);
+      meshRef.current = group as any;
+    } else {
+      // Fallback to DSL-generated geometry
+      const meshData = geometryResult.mesh;
+      const bufferGeometry = new THREE.BufferGeometry();
+    bufferGeometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(meshData.vertices, 3),
+    );
+    bufferGeometry.setAttribute(
+      "normal",
+      new THREE.Float32BufferAttribute(meshData.normals, 3),
+    );
+    bufferGeometry.setIndex(new THREE.BufferAttribute(meshData.indices, 1));
 
     // Color generation based on ViewMode
     const colors: number[] = [];
     const count = meshData.vertices.length / 3;
 
-    if (viewMode === 'thickness_heatmap') {
+    if (viewMode === "thickness_heatmap") {
       const nominal = geometryResult.nominalWallThicknessMm;
       for (let i = 0; i < count; i++) {
         const y = meshData.vertices[i * 3 + 1];
-        const isBase = y < -geometryResult.model.geometry.profile.height / 2 + 5;
+        const isBase =
+          y < -geometryResult.model.geometry.profile.height / 2 + 5;
         const isRim = y > geometryResult.model.geometry.profile.height / 2 - 6;
 
         if (isBase) {
@@ -208,8 +267,11 @@ export const CADViewer3D: React.FC<CADViewer3DProps> = ({
           colors.push(0.05, 0.75, 0.85); // Electric Cyan
         }
       }
-      bufferGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-    } else if (viewMode === 'draft_angles') {
+      bufferGeometry.setAttribute(
+        "color",
+        new THREE.Float32BufferAttribute(colors, 3),
+      );
+    } else if (viewMode === "draft_angles") {
       for (let i = 0; i < count; i++) {
         const ny = meshData.normals[i * 3 + 1];
         if (Math.abs(ny) > 0.85) {
@@ -220,14 +282,18 @@ export const CADViewer3D: React.FC<CADViewer3DProps> = ({
           colors.push(0.05, 0.75, 0.85);
         }
       }
-      bufferGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      bufferGeometry.setAttribute(
+        "color",
+        new THREE.Float32BufferAttribute(colors, 3),
+      );
     }
 
     // Material selection
     let cadMaterial: THREE.Material;
-    const clipPlanes = enableSectionCut && clipPlaneRef.current ? [clipPlaneRef.current] : [];
+    const clipPlanes =
+      enableSectionCut && clipPlaneRef.current ? [clipPlaneRef.current] : [];
 
-    if (viewMode === 'solid') {
+    if (viewMode === "solid") {
       cadMaterial = new THREE.MeshPhysicalMaterial({
         color: 0x06b6d4, // Vibrant Electric Cyan
         metalness: 0.15,
@@ -240,7 +306,7 @@ export const CADViewer3D: React.FC<CADViewer3DProps> = ({
         clippingPlanes: clipPlanes,
         clipShadows: true,
       });
-    } else if (viewMode === 'wireframe') {
+    } else if (viewMode === "wireframe") {
       cadMaterial = new THREE.MeshBasicMaterial({
         color: 0x0f172a,
         wireframe: false,
@@ -264,14 +330,20 @@ export const CADViewer3D: React.FC<CADViewer3DProps> = ({
     meshRef.current = cadMesh;
 
     // Add Wireframe / B-Rep Edges overlay if selected
-    if (viewMode === 'wireframe') {
+    if (viewMode === "wireframe") {
       const wireframeGeometry = new THREE.WireframeGeometry(bufferGeometry);
       const wireframeMaterial = new THREE.LineBasicMaterial({
         color: 0x06b6d4,
         linewidth: 1,
-        clippingPlanes: enableSectionCut && clipPlaneRef.current ? [clipPlaneRef.current] : [],
+        clippingPlanes:
+          enableSectionCut && clipPlaneRef.current
+            ? [clipPlaneRef.current]
+            : [],
       });
-      const wireframe = new THREE.LineSegments(wireframeGeometry, wireframeMaterial);
+      const wireframe = new THREE.LineSegments(
+        wireframeGeometry,
+        wireframeMaterial,
+      );
       scene.add(wireframe);
       wireframeMeshRef.current = wireframe;
     }
@@ -285,7 +357,14 @@ export const CADViewer3D: React.FC<CADViewer3DProps> = ({
   }, [sectionCutPos]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 viewer-friendly">
+      <div className="viewer-intro">
+        <h2>Meet your first 3D preview 🧊</h2>
+        <p>
+          Click and drag to turn it. Scroll to look closer. Try “Look inside” to
+          reveal the inside of your cup.
+        </p>
+      </div>
       {/* 3D Canvas Container & HUD */}
       <div className="bg-[#0F1117] border border-white/10 overflow-hidden shadow-lg relative flex flex-col">
         {/* Canvas Toolbar */}
@@ -293,43 +372,51 @@ export const CADViewer3D: React.FC<CADViewer3DProps> = ({
           <div className="flex items-center gap-1 bg-[#0F1117] border border-white/10 p-1">
             <button
               id="view-mode-solid"
-              onClick={() => setViewMode('solid')}
+              onClick={() => setViewMode("solid")}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] uppercase font-bold tracking-wider transition cursor-pointer ${
-                viewMode === 'solid' ? 'bg-cyan-500 text-black' : 'text-white/60 hover:text-white'
+                viewMode === "solid"
+                  ? "bg-cyan-500 text-black"
+                  : "text-white/60 hover:text-white"
               }`}
             >
               <Eye className="w-3.5 h-3.5" />
-              Solid Shaded
+              Solid view
             </button>
             <button
               id="view-mode-wireframe"
-              onClick={() => setViewMode('wireframe')}
+              onClick={() => setViewMode("wireframe")}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] uppercase font-bold tracking-wider transition cursor-pointer ${
-                viewMode === 'wireframe' ? 'bg-cyan-500 text-black' : 'text-white/60 hover:text-white'
+                viewMode === "wireframe"
+                  ? "bg-cyan-500 text-black"
+                  : "text-white/60 hover:text-white"
               }`}
             >
               <Layers className="w-3.5 h-3.5" />
-              B-Rep Wireframe
+              Show edges
             </button>
             <button
               id="view-mode-thickness"
-              onClick={() => setViewMode('thickness_heatmap')}
+              onClick={() => setViewMode("thickness_heatmap")}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] uppercase font-bold tracking-wider transition cursor-pointer ${
-                viewMode === 'thickness_heatmap' ? 'bg-cyan-500 text-black' : 'text-white/60 hover:text-white'
+                viewMode === "thickness_heatmap"
+                  ? "bg-cyan-500 text-black"
+                  : "text-white/60 hover:text-white"
               }`}
             >
               <Flame className="w-3.5 h-3.5" />
-              Wall Thickness Heatmap
+              Wall thickness
             </button>
             <button
               id="view-mode-draft"
-              onClick={() => setViewMode('draft_angles')}
+              onClick={() => setViewMode("draft_angles")}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] uppercase font-bold tracking-wider transition cursor-pointer ${
-                viewMode === 'draft_angles' ? 'bg-cyan-500 text-black' : 'text-white/60 hover:text-white'
+                viewMode === "draft_angles"
+                  ? "bg-cyan-500 text-black"
+                  : "text-white/60 hover:text-white"
               }`}
             >
               <Compass className="w-3.5 h-3.5" />
-              Draft Angles
+              Surface angles
             </button>
           </div>
 
@@ -340,12 +427,12 @@ export const CADViewer3D: React.FC<CADViewer3DProps> = ({
               onClick={() => setEnableSectionCut(!enableSectionCut)}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-mono uppercase tracking-wider border transition cursor-pointer ${
                 enableSectionCut
-                  ? 'bg-rose-500/10 text-rose-400 border-rose-500/30 font-bold'
-                  : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10'
+                  ? "bg-rose-500/10 text-rose-400 border-rose-500/30 font-bold"
+                  : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10"
               }`}
             >
               <Scissors className="w-3.5 h-3.5" />
-              {enableSectionCut ? 'Section Cut: ACTIVE' : 'Section Cut'}
+              {enableSectionCut ? "Look inside: on" : "Look inside"}
             </button>
 
             {enableSectionCut && (
@@ -376,37 +463,52 @@ export const CADViewer3D: React.FC<CADViewer3DProps> = ({
           {/* Overlay CAD Metric HUD (Top Left) */}
           <div className="absolute top-4 left-4 bg-[#0F1117]/95 border border-white/15 p-3.5 text-xs font-mono space-y-1.5 pointer-events-none shadow-xl">
             <div className="text-cyan-400 font-mono text-[10px] uppercase tracking-widest border-b border-white/10 pb-1">
-              {geometryResult.model.partName} • B-REP SOLID MODEL
+              {geometryResult.model.partName} • CONCEPT PREVIEW
             </div>
             <div className="flex items-center justify-between gap-6 pt-1">
-              <span className="text-white/60">Target Volume:</span>
-              <span className="font-mono text-white font-bold">{geometryResult.calculatedVolumeMl} ml</span>
+              <span className="text-white/60">Estimated capacity:</span>
+              <span className="font-mono text-white font-bold">
+                {geometryResult.calculatedVolumeMl} ml
+              </span>
             </div>
             <div className="flex items-center justify-between gap-6">
-              <span className="text-white/60">Solid Mass ({geometryResult.model.material}):</span>
-              <span className="font-mono text-cyan-400 font-bold">{geometryResult.calculatedMassGrams} g</span>
+              <span className="text-white/60">
+                Solid Mass ({geometryResult.model.material}):
+              </span>
+              <span className="font-mono text-cyan-400 font-bold">
+                {geometryResult.calculatedMassGrams} g
+              </span>
             </div>
             <div className="flex items-center justify-between gap-6">
               <span className="text-white/60">Surface Area:</span>
-              <span className="font-mono text-white/80">{geometryResult.surfaceAreaCm2} cm²</span>
+              <span className="font-mono text-white/80">
+                {geometryResult.surfaceAreaCm2} cm²
+              </span>
             </div>
             <div className="flex items-center justify-between gap-6">
               <span className="text-white/60">Pull Draft Angle:</span>
-              <span className="font-mono text-emerald-400 font-bold">{geometryResult.actualDraftDeg}°</span>
+              <span className="font-mono text-emerald-400 font-bold">
+                {geometryResult.actualDraftDeg}°
+              </span>
             </div>
             <div className="pt-2 border-t border-white/10 flex items-center gap-1.5 text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              Watertight Manifold Shell (OCCT Verified)
+              Illustrative preview · not manufacturing verified
             </div>
           </div>
 
           {/* Color Legend (Bottom Left) */}
-          {viewMode === 'thickness_heatmap' && (
+          {viewMode === "thickness_heatmap" && (
             <div className="absolute bottom-4 left-4 bg-[#0F1117]/95 border border-white/15 p-3 text-[11px] font-mono space-y-1.5 shadow-xl">
-              <div className="font-bold text-white uppercase text-[10px] tracking-wider mb-1">Wall Thickness DFM:</div>
+              <div className="font-bold text-white uppercase text-[10px] tracking-wider mb-1">
+                Wall Thickness DFM:
+              </div>
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 bg-cyan-400"></span>
-                <span className="text-white/70">Nominal Uniform Shell ({geometryResult.nominalWallThicknessMm} mm)</span>
+                <span className="text-white/70">
+                  Nominal Uniform Shell ({geometryResult.nominalWallThicknessMm}{" "}
+                  mm)
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 bg-emerald-500"></span>
@@ -414,21 +516,27 @@ export const CADViewer3D: React.FC<CADViewer3DProps> = ({
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 bg-yellow-500"></span>
-                <span className="text-white/70">Thick Section (Sink Mark Risk)</span>
+                <span className="text-white/70">
+                  Thick Section (Sink Mark Risk)
+                </span>
               </div>
             </div>
           )}
 
-          {viewMode === 'draft_angles' && (
+          {viewMode === "draft_angles" && (
             <div className="absolute bottom-4 left-4 bg-[#0F1117]/95 border border-white/15 p-3 text-[11px] font-mono space-y-1.5 shadow-xl">
-              <div className="font-bold text-white uppercase text-[10px] tracking-wider mb-1">Draft Angle Distribution:</div>
+              <div className="font-bold text-white uppercase text-[10px] tracking-wider mb-1">
+                Illustrative surface angles:
+              </div>
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 bg-cyan-400"></span>
                 <span className="text-white/70">Adequate Draft (≥ 1.5°)</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 bg-emerald-500"></span>
-                <span className="text-white/70">Horizontal Parting Line Faces</span>
+                <span className="text-white/70">
+                  Horizontal Parting Line Faces
+                </span>
               </div>
             </div>
           )}
@@ -447,11 +555,11 @@ export const CADViewer3D: React.FC<CADViewer3DProps> = ({
           <div className="flex items-center gap-2.5">
             <Layers className="w-4 h-4 text-cyan-400" />
             <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
-              B-Rep Topological Face Inspector (OCCT Advance Faces)
+              Explore the parts of your cup
             </h3>
           </div>
           <span className="text-[11px] text-cyan-400 font-mono">
-            {geometryResult.faces.length} Topological Faces Tagged
+            {geometryResult.faces.length} surfaces
           </span>
         </div>
 
@@ -467,12 +575,14 @@ export const CADViewer3D: React.FC<CADViewer3DProps> = ({
                 }}
                 className={`p-3.5 border cursor-pointer transition ${
                   isSelected
-                    ? 'bg-cyan-500/10 border-cyan-500 text-white shadow-sm'
-                    : 'bg-[#0A0C10] border-white/10 text-white/70 hover:border-white/20'
+                    ? "bg-cyan-500/10 border-cyan-500 text-white shadow-sm"
+                    : "bg-[#0A0C10] border-white/10 text-white/70 hover:border-white/20"
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-mono text-cyan-400 font-bold">{face.semanticTag}</span>
+                  <span className="font-mono text-cyan-400 font-bold">
+                    {face.semanticTag}
+                  </span>
                   <span className="text-[10px] bg-white/10 px-1.5 py-0.5 font-mono text-white/80">
                     {face.type}
                   </span>
@@ -480,15 +590,21 @@ export const CADViewer3D: React.FC<CADViewer3DProps> = ({
                 <div className="space-y-1 text-[11px] text-white/60">
                   <div className="flex justify-between">
                     <span>Area:</span>
-                    <span className="font-mono text-white">{face.areaMm2} mm²</span>
+                    <span className="font-mono text-white">
+                      {face.areaMm2} mm²
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Thickness:</span>
-                    <span className="font-mono text-white">{face.minThicknessMm} mm</span>
+                    <span className="font-mono text-white">
+                      {face.minThicknessMm} mm
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Draft Angle:</span>
-                    <span className="font-mono text-emerald-400 font-bold">{face.draftAngleDeg}°</span>
+                    <span className="font-mono text-emerald-400 font-bold">
+                      {face.draftAngleDeg}°
+                    </span>
                   </div>
                 </div>
               </div>
