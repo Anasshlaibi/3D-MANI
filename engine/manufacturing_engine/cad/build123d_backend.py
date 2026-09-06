@@ -272,8 +272,8 @@ class RealBuild123dBackend:
             surface_area_mm2=surf_mm2,
             surface_area_cm2=round(surf_mm2 / 100.0, 1),
             center_of_mass=(com.X(), com.Y(), com.Z()),
-            bounding_box_min=(bb.min.X, bb.min.Y, bb.min.Z),
-            bounding_box_max=(bb.max.X, bb.max.Y, bb.max.Z),
+            bounding_box_min=(bb.min.X, 0.0, bb.min.Y),
+            bounding_box_max=(bb.max.X, bb.size.Z, bb.max.Y),
             source="OCCT_GProp",
         )
 

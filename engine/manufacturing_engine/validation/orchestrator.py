@@ -30,21 +30,44 @@ def run_full_validation_ladder(dsl_text: str, revision: int = 1) -> Dict[str, An
     # Get the appropriate CAD backend and whether it's real
     cad_backend, is_real_cad = get_cad_backend()
 
-    shape = cad_backend.create_part(name=program.parts[0].part_name if program.parts else "Part_001")
+    # Extract DSL parameters
+    part_name = program.parts[0].part_name if program.parts else "Part_001"
+    bottom_dia = 64.0
+    top_dia = 82.0
+    height = 115.0
+    shell_thickness = 1.8
 
-    # Configure shape parameters from profile
     if program.parts and program.parts[0].geometry.profile:
         prof = program.parts[0].geometry.profile
-        shape.params["bottom_diameter"] = prof.bottom_diameter.canonical_value if prof.bottom_diameter else 64.0
-        shape.params["top_diameter"] = prof.top_diameter.canonical_value if prof.top_diameter else 82.0
-        shape.params["height"] = prof.height.canonical_value if prof.height else 115.0
+        bottom_dia = prof.bottom_diameter.canonical_value if prof.bottom_diameter else bottom_dia
+        top_dia = prof.top_diameter.canonical_value if prof.top_diameter else top_dia
+        height = prof.height.canonical_value if prof.height else height
     if program.parts and program.parts[0].geometry.shell:
-        shape.params["shell_thickness"] = program.parts[0].geometry.shell.thickness.canonical_value
+        shell_thickness = program.parts[0].geometry.shell.thickness.canonical_value
+
+    if is_real_cad:
+        # Build real geometry using build123d
+        import build123d as b3d
+        shape = b3d.Cone(bottom_radius=bottom_dia / 2, top_radius=top_dia / 2, height=height)
+        shape._mfg_name = part_name
+        shape.params = {
+            "bottom_diameter": bottom_dia,
+            "top_diameter": top_dia,
+            "height": height,
+            "shell_thickness": shell_thickness,
+        }
+    else:
+        # Simulated: create stub part with params dict
+        shape = cad_backend.create_part(name=part_name)
+        shape.params["bottom_diameter"] = bottom_dia
+        shape.params["top_diameter"] = top_dia
+        shape.params["height"] = height
+        shape.params["shell_thickness"] = shell_thickness
 
     mass_props = cad_backend.mass_properties(shape)
 
     # Export STEP and track if it's a real export
-    step_text, step_is_real = export_step_from_shape(shape, part_name=program.parts[0].part_name if program.parts else "Part_001")
+    step_text, step_is_real = export_step_from_shape(shape, part_name=part_name)
 
     # Gates 0-2: Always REAL_VALIDATION (no CAD kernel needed)
     g0 = run_gate_00(program, revision=revision)
