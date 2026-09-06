@@ -1,0 +1,6 @@
+{
+  "name": "AI Manufacturing Design Engine",
+  "description": "Parametric CAD generation, deterministic DFM validation, manufacturing DSL compilation, 13-gate validation ladder, and open-source CAD/CAE reuse architecture.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

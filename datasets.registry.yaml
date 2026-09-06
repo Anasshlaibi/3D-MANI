@@ -1,0 +1,67 @@
+# Machine-Readable Dataset Registry for AI Manufacturing Design Engine
+# Authoritative governance and license compliance registry
+
+datasets:
+  - id: "fusion_360_gallery"
+    name: "Fusion 360 Gallery Dataset"
+    owner: "Autodesk AI Lab"
+    source_url: "https://github.com/AutodeskAILab/Fusion360GalleryDataset"
+    license: "Autodesk Research License / Non-Commercial"
+    commercial_training_permitted: false
+    redistribution_permitted: false
+    modification_permitted: true
+    attribution_required: true
+    number_of_examples: 36000
+    geometry_format: "JSON construction sequences, STEP, OBJ, B-Rep topology"
+    labels: "Operation types, face segmentation, joint types"
+    intended_use: "Study CAD operation sequences and feature segmentation in research mode only."
+    status: "RESEARCH_ONLY"
+    license_status: "PROHIBITED_FOR_COMMERCIAL_TRAINING"
+
+  - id: "cadgenbench"
+    name: "CADGenBench Benchmark Suite"
+    owner: "Hugging Face CAD Community"
+    source_url: "https://github.com/huggingface/cadgenbench"
+    license: "Apache-2.0"
+    commercial_training_permitted: true
+    redistribution_permitted: true
+    modification_permitted: true
+    attribution_required: true
+    number_of_examples: 2500
+    geometry_format: "STEP, CadQuery scripts, build123d scripts, GLB"
+    labels: "Geometric parameters, feature IDs, dimension bounds, DFM rule targets"
+    intended_use: "Regression benchmark for testing DSL compilation and B-Rep validity."
+    status: "APPROVED"
+    license_status: "APPROVED"
+
+  - id: "abc_dataset"
+    name: "A Big CAD Model Dataset (ABC)"
+    owner: "New York University (NYU Courant Institute)"
+    source_url: "https://archive.nyu.edu/handle/2451/60057"
+    license: "MIT"
+    commercial_training_permitted: true
+    redistribution_permitted: true
+    modification_permitted: true
+    attribution_required: true
+    number_of_examples: 1000000
+    geometry_format: "STEP, IGES, OBJ, STL"
+    labels: "Surface normals, sharp features, curvature, closed shells"
+    intended_use: "Geometric validation testing, meshing benchmarks, topology stress tests."
+    status: "APPROVED"
+    license_status: "APPROVED"
+
+  - id: "im_100_fixture_suite"
+    name: "IM-100 Injection Molding Ground-Truth Suite"
+    owner: "AI Manufacturing Design Engine Core Team"
+    source_url: "Internal Proprietary Suite"
+    license: "Proprietary / Planned Internal Fixture Suite"
+    commercial_training_permitted: true
+    redistribution_permitted: false
+    modification_permitted: true
+    attribution_required: false
+    number_of_examples: 100
+    geometry_format: ".mfgdsl, STEP, GLB, CMM profiles"
+    labels: "Locked constraints, wall thickness, draft angles, injection pressures"
+    intended_use: "Ground-truth regression tests for Gate 0 through Gate 11."
+    status: "PLANNED"
+    license_status: "PLANNED"

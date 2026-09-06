@@ -1,0 +1,75 @@
+start: part_def
+
+part_def: "PART" IDENT "{" statement* "}"
+
+statement: process_stmt
+         | material_stmt
+         | require_block
+         | geometry_block
+         | features_block
+         | lock_block
+         | optimize_block
+
+process_stmt: "PROCESS" IDENT
+material_stmt: "MATERIAL" IDENT
+
+require_block: "REQUIRE" "{" require_stmt* "}"
+require_stmt: "VOLUME" OP val_qty    -> req_volume
+            | "HEIGHT" OP val_qty    -> req_height
+            | "STACKABLE" BOOLEAN     -> req_stackable
+            | "MIN_SAFETY_FACTOR" NUMBER -> req_safety_factor
+
+geometry_block: "GEOMETRY" "{" geom_stmt* "}"
+geom_stmt: profile_block
+         | shell_stmt
+         | draft_stmt
+         | fillet_stmt
+         | chamfer_stmt
+
+profile_block: "PROFILE" "{" profile_stmt* "}"
+profile_stmt: "BOTTOM_DIAMETER" val_qty -> prof_bottom_dia
+            | "TOP_DIAMETER" val_qty    -> prof_top_dia
+            | "HEIGHT" val_qty          -> prof_height
+            | "RADIUS" val_qty          -> prof_radius
+            | "LENGTH" val_qty          -> prof_length
+            | "WIDTH" val_qty           -> prof_width
+
+shell_stmt: "SHELL" val_qty
+draft_stmt: "DRAFT" val_qty
+fillet_stmt: "FILLET" IDENT val_qty
+chamfer_stmt: "CHAMFER" IDENT val_qty
+
+features_block: "FEATURES" "{" feature_stmt* "}"
+feature_stmt: "RIM" feature_arg*     -> feat_rim
+            | "HOLE" feature_arg*    -> feat_hole
+            | "BOSS" feature_arg*    -> feat_boss
+            | "RIB" feature_arg*     -> feat_rib
+            | "EMBOSS" feature_arg*  -> feat_emboss
+
+feature_arg: IDENT "=" feature_val
+feature_val: val_qty | STRING | BOOLEAN
+
+lock_block: "LOCK" "{" lock_item* "}"
+lock_item: IDENT
+
+optimize_block: "OPTIMIZE" "{" opt_item* "}"
+opt_item: "MINIMIZE" IDENT -> opt_min
+        | "MAINTAIN" IDENT -> opt_maint
+        | "MAXIMIZE" IDENT -> opt_max
+
+val_qty: QUANTITY | NUMBER
+
+OP: ">=" | "<=" | "==" | ">" | "<"
+BOOLEAN: "true"i | "false"i
+QUANTITY.2: /-?[0-9.]+\s*[a-zA-Z³]+/
+
+%import common.CNAME -> IDENT
+%import common.NUMBER
+%import common.ESCAPED_STRING -> STRING
+%import common.WS
+%import common.CPP_COMMENT
+%import common.C_COMMENT
+
+%ignore WS
+%ignore CPP_COMMENT
+%ignore C_COMMENT

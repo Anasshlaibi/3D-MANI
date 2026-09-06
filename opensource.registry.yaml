@@ -1,0 +1,67 @@
+# Machine-Readable Open Source Registry for AI Manufacturing Design Engine
+
+repositories:
+  - name: "build123d"
+    repository: "gumyr/build123d"
+    url: "https://github.com/gumyr/build123d"
+    category: "CAD Kernel Abstraction"
+    tier: "Tier 1"
+    decision: "USE AS DEPENDENCY"
+    license: "Apache-2.0"
+    commercial_compatible: true
+    upstream_commit: "v0.6.0"
+    internal_interface: "CADBackendAdapter (/cad/build123d/)"
+    phase: "Production V1 / MVP Core"
+    verified: true
+
+  - name: "Open CASCADE Technology (OCCT)"
+    repository: "Open-Cascade-SAS/OCCT"
+    url: "https://github.com/Open-Cascade-SAS/OCCT"
+    category: "Core B-Rep Geometry Kernel"
+    tier: "Tier 2"
+    decision: "USE AS DEPENDENCY"
+    license: "LGPL-2.1 with Open CASCADE Exception"
+    commercial_compatible: true
+    upstream_commit: "V7_7_0"
+    internal_interface: "OCP / BRepCheck_Analyzer"
+    phase: "Production V1 Foundational"
+    verified: true
+
+  - name: "CadQuery"
+    repository: "CadQuery/cadquery"
+    url: "https://github.com/CadQuery/cadquery"
+    category: "CAD Kernel Reference"
+    tier: "Tier 1"
+    decision: "STUDY REFERENCE"
+    license: "Apache-2.0"
+    commercial_compatible: true
+    upstream_commit: "v2.4.0"
+    internal_interface: "CADBackendAdapter (/cad/cadquery/)"
+    phase: "Reference / Secondary Adapter"
+    verified: true
+
+  - name: "Lark Parser"
+    repository: "lark-parser/lark"
+    url: "https://github.com/lark-parser/lark"
+    category: "LALR(1) Language Parser"
+    tier: "Tier 1"
+    decision: "USE AS DEPENDENCY"
+    license: "MIT"
+    commercial_compatible: true
+    upstream_commit: "v1.1.9"
+    internal_interface: "LarkDSLParser"
+    phase: "Production V1 Core"
+    verified: true
+
+  - name: "Elmer FEM"
+    repository: "ElmerCSC/elmerfem"
+    url: "https://github.com/ElmerCSC/elmerfem"
+    category: "Multiphysics Solver"
+    tier: "Reference"
+    decision: "USE AS DEPENDENCY"
+    license: "GPL-2.0+ (Subprocess CLI isolation)"
+    commercial_compatible: true
+    upstream_commit: "Release-9.0"
+    internal_interface: "SimulationSolverAdapter (Gate 8)"
+    phase: "Gate 8 Simulation"
+    verified: true

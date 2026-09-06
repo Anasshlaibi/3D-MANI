@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "manufacturing_engine"
+version = "1.0.0"
+description = "Deterministic Python Manufacturing Core for AI Manufacturing Design Engine"
+authors = [{ name = "AI Manufacturing Team" }]
+requires-python = ">=3.10"
+dependencies = [
+    "lark>=1.1.0",
+    "pydantic>=2.0.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.20.0",
+    "pyyaml>=6.0",
+    "numpy>=1.24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "mypy>=1.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["manufacturing_engine/tests"]
+python_files = "test_*.py"
