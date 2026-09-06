@@ -1,5 +1,11 @@
 """
 Gate 06: Manufacturing Process Rules (DFM)
+
+HONESTY NOTE (M2 Remediation):
+DFM rule evaluation logic is REAL — it checks material-specific constraints
+with sourced provenance. However, the geometry measurements (wall thickness,
+draft angle) come from DSL parameters, NOT from ray-cast B-Rep analysis.
+When is_real_cad=True, measurements would come from actual B-Rep analysis.
 """
 
 import time
@@ -12,7 +18,7 @@ from ..manufacturing.injection_molding.draft import evaluate_draft_angle
 from ..manufacturing.injection_molding.undercut import evaluate_undercuts
 from ..manufacturing.injection_molding.rules import INJECTION_MOLDING_RULES
 
-def run_gate_06(program: ProgramNode, revision: int = 1) -> Dict[str, Any]:
+def run_gate_06(program: ProgramNode, is_real_cad: bool = False, revision: int = 1) -> Dict[str, Any]:
     started_at = datetime.utcnow().isoformat() + "Z"
     t0 = time.perf_counter()
     
@@ -48,7 +54,24 @@ def run_gate_06(program: ProgramNode, revision: int = 1) -> Dict[str, Any]:
     t1 = time.perf_counter()
     completed_at = datetime.utcnow().isoformat() + "Z"
 
-    diag_msg = f"DFM Rules Satisfied: Wall thickness {shell_mm} mm is within [{mat.min_wall_thickness}, {mat.max_wall_thickness}] mm for {mat.name}. Draft angle is {draft_metrics['measuredDraftDeg']}°." if passed else (wall_msg if not wall_ok else draft_msg)
+    # DFM rule logic is always "real" (rules are sourced, provenance-tracked).
+    # But geometry measurements come from DSL parameters, not ray-cast B-Rep,
+    # unless is_real_cad is True.
+    if is_real_cad:
+        validation_type = "REAL_VALIDATION"
+        measurement_note = "Geometry from OCCT B-Rep."
+    else:
+        # Rule logic is real, but geometry inputs are from DSL parameters
+        validation_type = "REAL_RULES_SIMULATED_GEOMETRY"
+        measurement_note = "DFM rules are real (sourced provenance). Geometry measurements from DSL parameters, not B-Rep ray-cast."
+
+    diag_msg = (
+        f"DFM Rules Satisfied: Wall thickness {shell_mm} mm is within "
+        f"[{mat.min_wall_thickness}, {mat.max_wall_thickness}] mm for {mat.name}. "
+        f"Draft angle is {draft_metrics['measuredDraftDeg']}°. {measurement_note}"
+        if passed
+        else f"{wall_msg if not wall_ok else draft_msg} {measurement_note}"
+    )
 
     rule = INJECTION_MOLDING_RULES["IM_RULE_MIN_WALL_PP"]
     result = {
@@ -59,12 +82,12 @@ def run_gate_06(program: ProgramNode, revision: int = 1) -> Dict[str, Any]:
         "status": "PASS" if passed else "FAIL",
         "executionTimeMs": round((t1 - t0) * 1000, 2),
         "executor": "FastAPI:DFM_Rules_Engine",
-        "engine_version": "1.0.0",
+        "engine_version": "1.1.0",
         "ruleset_version": "1.0.0",
         "input_revision": revision,
         "started_at": started_at,
         "completed_at": completed_at,
-        "validationType": "REAL_VALIDATION",
+        "validationType": validation_type,
         "metrics": {
             "nominalWallMm": shell_mm,
             "minAllowableWallMm": mat.min_wall_thickness,

@@ -6,6 +6,7 @@ Defines the stable abstraction layer for parametric CAD backends.
 from typing import Protocol, Dict, Any, Tuple, Optional, List
 from pydantic import BaseModel
 
+
 class MassProperties(BaseModel):
     volume_mm3: float
     volume_ml: float
@@ -15,18 +16,27 @@ class MassProperties(BaseModel):
     center_of_mass: Tuple[float, float, float]
     bounding_box_min: Tuple[float, float, float]
     bounding_box_max: Tuple[float, float, float]
+    # Honesty fields: where did these numbers come from?
+    source: str = "UNKNOWN"  # "OCCT_GProp" | "FORMULA_ESTIMATE"
+
 
 class TopologyCheckResult(BaseModel):
-    is_valid: bool
-    is_solid: bool
-    is_manifold: bool
-    is_watertight: bool
-    euler_characteristic: int
-    occt_check_status: str
+    is_valid: Optional[bool] = None  # None = unknown (no CAD kernel available)
+    is_solid: Optional[bool] = None
+    is_manifold: Optional[bool] = None
+    is_watertight: Optional[bool] = None
+    euler_characteristic: Optional[int] = None
+    occt_check_status: str = "NOT_EXECUTED"
+    validated_by: str = "UNKNOWN"  # "OCCT_BRepCheck_Analyzer" | "UNAVAILABLE_STUB"
     errors: List[str] = []
     warnings: List[str] = []
 
+
 class CADBackend(Protocol):
+    """Protocol interface for parametric CAD backends."""
+    backend_name: str
+    execution_mode: str  # "REAL_OCCT" | "SIMULATED_GEOMETRY"
+
     def create_part(self, name: str) -> Any: ...
     def extrude(self, profile: Any, distance: float) -> Any: ...
     def revolve(self, profile: Any, angle_deg: float, axis: str = "Z") -> Any: ...

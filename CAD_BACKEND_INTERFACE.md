@@ -64,3 +64,31 @@ Our architectural wrapper provides proprietary capabilities missing from vanilla
 - **Constraint Immutability:** A parameter marked `LOCKED` by a human engineer cannot be silently altered by any AI repair proposal.
 - **Deterministic Replay:** The exact same DSL AST compiled with the same versioned ruleset produces byte-for-byte identical B-Rep geometry and mass properties.
 - **Auditable Provenance:** Every vertex, face, and parameter stores its source, ruleset version, and revision timestamp.
+
+---
+
+### 6. Current Implementation Status (M2 Honesty Remediation)
+
+The build123d CAD backend integration exists in two tiers:
+
+| Component | Status |
+|---|---|
+| `CADBackend` Protocol interface | ✅ Defined and stable |
+| `SimulatedBackend` (fallback) | ✅ Working — labels all results as `SIMULATED_GEOMETRY` |
+| `RealBuild123dBackend` (real OCCT) | ⚠️ Code written, requires `pip install -e ".[cad]"` with build123d/OCP |
+| `get_cad_backend()` factory | ✅ Returns correct backend based on import probe |
+| `topology.py` — OCCT BRepCheck | ⚠️ Returns `is_valid=None` when OCP not installed |
+| `exporters.py` — STEP export | ⚠️ Returns `verified=False` for template fallback |
+
+**To activate real CAD execution:**
+```bash
+# Option 1: pip (if OCP wheel available for your platform)
+pip install -e "./engine[cad]"
+
+# Option 2: conda (recommended for OCP/OCCT)
+conda install -c conda-forge build123d
+pip install -e "./engine"
+```
+
+When build123d is installed, the system automatically switches from `SimulatedBackend` to `RealBuild123dBackend` and all validation gates report `REAL_VALIDATION`.
+

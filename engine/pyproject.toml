@@ -4,10 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "manufacturing_engine"
-version = "1.0.0"
+version = "1.1.0"
 description = "Deterministic Python Manufacturing Core for AI Manufacturing Design Engine"
 authors = [{ name = "AI Manufacturing Team" }]
 requires-python = ">=3.10"
+
+# Core dependencies — these are sufficient for DSL parsing, AST validation,
+# parameter checking, DFM rule evaluation, and the simulated geometry fallback.
+# They do NOT provide real CAD/OCCT execution.
 dependencies = [
     "lark>=1.1.0",
     "pydantic>=2.0.0",
@@ -18,12 +22,29 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Install with: pip install -e ".[cad]"
+# Provides real build123d/OCCT B-Rep geometry construction, STEP export,
+# and BRepCheck_Analyzer validation. Requires OCP (OpenCASCADE Python bindings).
+# NOTE: OCP may require conda/mamba on some platforms.
+cad = [
+    "build123d>=0.7.0",
+]
+
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "mypy>=1.0.0",
 ]
 
+# Combined: pip install -e ".[all]"
+all = [
+    "manufacturing_engine[cad]",
+    "manufacturing_engine[dev]",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["manufacturing_engine/tests"]
 python_files = "test_*.py"
+markers = [
+    "real_cad: tests that require build123d/OCP (deselect with -m 'not real_cad')",
+]

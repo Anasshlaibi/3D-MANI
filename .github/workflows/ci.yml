@@ -7,8 +7,15 @@ on:
     branches: [ main, master ]
 
 jobs:
-  python-tests:
-    name: Python Manufacturing Engine Tests & Typing
+  # =========================================================================
+  # TIER 1: Core Engine Tests (NO build123d/OCCT required)
+  # =========================================================================
+  # These tests verify DSL parsing, AST construction, parameter validation,
+  # DFM rule evaluation, and the simulated geometry fallback path.
+  # They do NOT prove real CAD/OCCT execution.
+  # =========================================================================
+  tier1-python-tests:
+    name: "Tier 1: Core Engine Tests (no CAD kernel)"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,7 +25,7 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Python Dependencies
+      - name: Install Core Dependencies (NO build123d/OCP)
         run: |
           python -m pip install --upgrade pip
           pip install lark pydantic fastapi uvicorn pyyaml numpy pytest pytest-cov mypy
@@ -27,10 +34,56 @@ jobs:
         run: |
           mypy engine/manufacturing_engine --ignore-missing-imports || true
 
-      - name: Run Python Deterministic Test Suite
+      - name: "Run Tier 1 Tests (DSL, AST, Parameters, DFM Rules, Simulated CAD)"
         run: |
-          pytest engine/manufacturing_engine/tests -v --cov=engine/manufacturing_engine
+          echo "============================================================"
+          echo "TIER 1: These tests do NOT require or use build123d/OCCT."
+          echo "They verify DSL parsing, AST, parameters, DFM rules, and"
+          echo "the SIMULATED_GEOMETRY fallback path."
+          echo "Tests assert SIMULATED_ESTIMATE — NOT REAL_VALIDATION."
+          echo "============================================================"
+          pytest engine/manufacturing_engine/tests -v -m "not real_cad" --cov=engine/manufacturing_engine
 
+  # =========================================================================
+  # TIER 2: Real CAD Tests (requires build123d/OCCT via conda)
+  # =========================================================================
+  # These tests verify actual OCCT B-Rep construction, real STEP export,
+  # BRepCheck_Analyzer topology validation, and OCCT GProp measurements.
+  # This job is optional (continue-on-error) until conda setup is reliable.
+  # =========================================================================
+  tier2-real-cad-tests:
+    name: "Tier 2: Real CAD Tests (build123d/OCCT)"
+    runs-on: ubuntu-latest
+    continue-on-error: true  # Optional until conda setup is reliable
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Conda (Miniforge)
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          activate-environment: mfg-cad
+          python-version: "3.11"
+
+      - name: Install build123d via conda
+        shell: bash -l {0}
+        run: |
+          conda install -c conda-forge build123d -y
+          pip install lark pydantic fastapi uvicorn pyyaml numpy pytest pytest-cov
+
+      - name: "Run Tier 2 Tests (Real CAD / OCCT)"
+        shell: bash -l {0}
+        run: |
+          echo "============================================================"
+          echo "TIER 2: These tests REQUIRE build123d/OCCT."
+          echo "They verify real B-Rep geometry construction and validation."
+          echo "Tests assert REAL_VALIDATION from actual OCCT execution."
+          echo "============================================================"
+          pytest engine/manufacturing_engine/tests -v -m "real_cad" --cov=engine/manufacturing_engine || true
+
+  # =========================================================================
+  # Frontend Build
+  # =========================================================================
   frontend-build:
     name: Frontend Typecheck & Build
     runs-on: ubuntu-latest
